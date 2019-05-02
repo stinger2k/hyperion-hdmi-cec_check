@@ -1,0 +1,52 @@
+#!/bin/bash
+
+######################################################################################
+#Script Name	: hdmi-cec_check.sh
+#Description	: Control any Process (hyperiond in this example) over HDMI-CEC States
+#Args			: 
+#Author			: stinger2k
+#EMail			: stinger2k@msn.com
+######################################################################################
+
+(
+flock -n 9 || exit
+
+while :; do
+	wait_time="10"
+	process="hyperiond"
+	
+	echo -e "\nChecking CEC-State of TV(0)"
+	
+	grep_proc=$(ps | pgrep -nl $process | sed 's/\// /g' | awk '{print $5 " "}' | sed 's/\ //g')
+	status=$(echo "pow 0" | cec-client -s -d 1 | grep 'power status:' | (awk '{print $3 " "}') | sed 's/ //g')
+	
+	echo "Device is in State: $status"
+	if [ "$status" == "standby" ] || [ "$status" == "in" ]; then 
+		echo "Device in 'standby' - nothing to do..."
+        if  [ "$grep_proc" == "$process" ]; then
+			echo "$process present"
+			echo "Killing $process..."
+			killall $process
+		fi
+		if ! [ "$grep_proc" == "$process" ]; then
+            echo "Process '$process' not found..."
+        fi
+	fi        
+	if [ "$status" == "on" ]; then
+		if ! [ "$grep_proc" == "$process" ]; then
+			echo "$process not present..."
+			echo "Starting $process..."
+            . /storage/.config/autostart.sh
+		fi
+		if  [ "$grep_proc" == "$process" ]; then
+            echo "$process running and Device is $status - System running normally..."
+        fi
+	fi
+	for i in $(seq 1 1 $wait_time)
+	do
+		echo -en "\015\033[K Waiting $i from $wait_time seconds"
+		sleep 1
+	done
+	echo ""
+done
+) 9>/tmp/cec.lck
