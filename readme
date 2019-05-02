@@ -1,0 +1,4 @@
+add the file in /storage/.config/ and extend /storage/.config/autostart.sh to this line:
+. /storage/.config/hdmi-cec_check.sh
+
+!! Don´t forget permissions and chmod +x !! ;)
